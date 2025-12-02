@@ -61,7 +61,7 @@ func IterateSlice[T any](slice []T) iter.Seq[T] {
 	}
 }
 
-func IterateValues[T any](values ...T) iter.Seq[T] {
+func IterateValues[T any](values...T) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		for _, v := range values {
 			if !yield(v) {
