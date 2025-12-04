@@ -6,6 +6,12 @@ keva
 *.so
 *.dylib
 
+# Local test files
+ignored/*
+ignore/*
+*.toml
+workdir/*
+
 # Test binary, built with `go test -c`
 *.test
 
