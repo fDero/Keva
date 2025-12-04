@@ -7,10 +7,9 @@ import (
 	"sync"
 
 	"github.com/fDero/keva/cluster"
+	"github.com/fDero/keva/core"
 	"github.com/fDero/keva/history"
 	"github.com/fDero/keva/misc"
-	"github.com/fDero/keva/server"
-	"github.com/fDero/keva/storage"
 	"github.com/urfave/cli/v2"
 )
 
@@ -42,8 +41,8 @@ func InitializeSettings(
 	other_nodes map[string]cluster.ClusterNode,
 	self_config cluster.ClusterNode,
 	history_file history.HistoryFile,
-	storage *storage.StorageSettings,
-) (*cluster.RaftSettings, *server.ServerSettings) {
+	storage *core.StorageSettings,
+) (*cluster.RaftSettings, *core.ServerSettings) {
 	global_mutex := &sync.Mutex{}
 	rs := cluster.NewRaftSettings(
 		other_nodes,
@@ -53,7 +52,7 @@ func InitializeSettings(
 		registerCallbackFactory(history_file, storage),
 		history_file.GetEventByID,
 	)
-	ss := server.NewServerSettings(
+	ss := core.NewServerSettings(
 		global_mutex,
 		rs.GetLeaderDescriptor,
 		storage.FetchRecord,
@@ -63,7 +62,7 @@ func InitializeSettings(
 
 func registerCallbackFactory(
 	history_file history.HistoryFile,
-	storage *storage.StorageSettings,
+	storage *core.StorageSettings,
 ) func(string) error {
 	return func(event string) error {
 		err := storage.ProcessEvent(event)
@@ -105,7 +104,7 @@ func executeCommand(c *cli.Context) error {
 		return fmt.Errorf("failed to initialize cluster node: %w", err)
 	}
 
-	storage := storage.NewStorageSettings()
+	storage := core.NewStorageSettings()
 	rs, ss := InitializeSettings(other_nodes, self_config, history_file, storage)
 
 	go rs.StartClusterEventLoop()
