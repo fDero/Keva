@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type HostDesriptor struct {
@@ -14,6 +15,26 @@ type HostDesriptor struct {
 
 func EncodeToBase64(input string) string {
 	return base64.StdEncoding.EncodeToString([]byte(input))
+}
+
+func DecodeFromBase64(encoded string) string {
+	decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return ""
+	}
+	return string(decodedBytes)
+}
+
+func SplitN(s string, sep string, n int) []string {
+	parts := strings.SplitN(s, sep, n)
+	for len(parts) < n {
+		parts = append(parts, "")
+	}
+	return parts[:n]
+}
+
+func AsJsonString(attribute string, value string) string {
+	return "{ \"" + attribute + "\": \"" + value + "\" }"
 }
 
 func NormalizeEndpoint(endpoint string) string {

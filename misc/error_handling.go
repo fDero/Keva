@@ -13,6 +13,17 @@ func FailOnError[T any](data T, err error) T {
 	return data
 }
 
+func ProcessingPipeline[T any](processors ...func(T) error) func(T) error {
+	return func(result T) error {
+		for _, processor := range processors {
+			if err := processor(result); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
 func FirstOfManyErrorsOrNone(elems []error) error {
 	for _, elem := range elems {
 		if elem != nil {

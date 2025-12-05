@@ -37,44 +37,6 @@ var App = &cli.App{
 	Action: executeCommand,
 }
 
-func InitializeSettings(
-	other_nodes map[string]cluster.ClusterNode,
-	self_config cluster.ClusterNode,
-	history_file history.HistoryFile,
-	storage *core.StorageSettings,
-) (*cluster.RaftSettings, *core.ServerSettings) {
-	global_mutex := &sync.Mutex{}
-	rs := cluster.NewRaftSettings(
-		other_nodes,
-		self_config,
-		global_mutex,
-		history_file.GetLastEventID(),
-		registerCallbackFactory(history_file, storage),
-		history_file.GetEventByID,
-	)
-	ss := core.NewServerSettings(
-		global_mutex,
-		rs.GetLeaderDescriptor,
-		storage.FetchRecord,
-	)
-	return &rs, &ss
-}
-
-func registerCallbackFactory(
-	history_file history.HistoryFile,
-	storage *core.StorageSettings,
-) func(string) error {
-	return func(event string) error {
-		err := storage.ProcessEvent(event)
-		if err != nil {
-			return err
-		}
-		err = history_file.AppendEvent(event)
-		fmt.Println("Appended event to history:", event)
-		return err
-	}
-}
-
 func executeCommand(c *cli.Context) error {
 	var cluster_nodes []cluster.ClusterNode
 	var errors [5]error
@@ -104,12 +66,27 @@ func executeCommand(c *cli.Context) error {
 		return fmt.Errorf("failed to initialize cluster node: %w", err)
 	}
 
+	global_mutex := &sync.Mutex{}
 	storage := core.NewStorageSettings()
-	rs, ss := InitializeSettings(other_nodes, self_config, history_file, storage)
 
-	go rs.StartClusterEventLoop()
-	go rs.StartClusterInternalServer(self_config.KevaPort)
-	go ss.StartUserAPIServer(self_config.UserPort)
+	raft_settings := cluster.NewRaftSettings(
+		other_nodes,
+		self_config,
+		global_mutex,
+		history_file.GetLastEventID(),
+		misc.ProcessingPipeline(history_file.AppendEvent, storage.ProcessEvent),
+		history_file.GetEventByID,
+	)
+
+	server_settings := core.NewServerSettings(
+		global_mutex,
+		raft_settings.GetLeaderDescriptor,
+		storage.FetchRecord,
+	)
+
+	go raft_settings.StartClusterEventLoop()
+	go raft_settings.StartClusterInternalServer(self_config.KevaPort)
+	go server_settings.StartUserAPIServer(self_config.UserPort)
 
 	select {}
 }
