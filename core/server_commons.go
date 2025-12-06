@@ -28,27 +28,16 @@ func NewServerSettings(
 	}
 }
 
-func forwarderFactory(handler func(string, string) int) gin.HandlerFunc {
+func handlerFactory(action string, handler func(Event) (int, string)) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("key")
-		var jsonBody struct {
-			Value string `json:"value"`
-		}
-		if err := c.ShouldBindJSON(&jsonBody); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON or missing value field"})
+		event, err := RecieveRestEvent(action, c)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "unable to read request body"})
 			return
 		}
-		statusCode := handler(key, jsonBody.Value)
-		c.JSON(statusCode, gin.H{})
-	}
-}
-
-func handlerFactory(handler func(string) (int, string)) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		key := c.Param("key")
-		status_code, json_string := handler(key)
+		status_code, json_string := handler(event)
 		json_obj := make(map[string]any)
-		err := json.Unmarshal([]byte(json_string), &json_obj)
+		err = json.Unmarshal([]byte(json_string), &json_obj)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, json_string)
 			return
@@ -59,9 +48,9 @@ func handlerFactory(handler func(string) (int, string)) gin.HandlerFunc {
 
 func (ss *ServerSettings) StartUserAPIServer(port string) error {
 	api := gin.Default()
-	api.POST("/v1/storage/key/:key", forwarderFactory(ss.upsertRecord))
-	api.DELETE("/v1/storage/key/:key", forwarderFactory(ss.deleteRecord))
-	api.GET("/v1/storage/key/:key", handlerFactory(ss.fetchRecord))
+	api.POST("/v1/storage/key/:key", handlerFactory("UPSERT/VALUE", ss.forwardEvent))
+	api.DELETE("/v1/storage/key/:key", handlerFactory("DELETE/VALUE", ss.forwardEvent))
+	api.GET("/v1/storage/key/:key", handlerFactory("READ/VALUE", ss.fetchRecord))
 	fmt.Println("Starting storage user API server on port:", port)
 	return api.Run(":" + port)
 }

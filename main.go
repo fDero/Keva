@@ -74,7 +74,10 @@ func executeCommand(c *cli.Context) error {
 		self_config,
 		global_mutex,
 		history_file.GetLastEventID(),
-		misc.ProcessingPipeline(history_file.AppendEvent, storage.ProcessEvent),
+		misc.ProcessingPipeline(
+			history_file.AppendEvent,
+			core.DecodeAndForward(storage.ProcessEvent),
+		),
 		history_file.GetEventByID,
 	)
 

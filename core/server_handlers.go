@@ -10,12 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (ss *ServerSettings) discoverLeader() misc.HostDesriptor {
-	ss.mutex.Lock()
-	defer ss.mutex.Unlock()
-	return ss.getLeaderInfoCallback()
-}
-
 func (ss *ServerSettings) forwardToLeader(endpoint string, body map[string]any) int {
 	leader := ss.discoverLeader()
 	normalized_endpoint := misc.NormalizeEndpoint(endpoint)
@@ -30,43 +24,32 @@ func (ss *ServerSettings) forwardToLeader(endpoint string, body map[string]any) 
 	return resp.StatusCode
 }
 
-func (ss *ServerSettings) fetchRecord(key string) (int, string) {
+func (ss *ServerSettings) discoverLeader() misc.HostDesriptor {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
-	value, present := ss.fetchElementCallback(key)
+	return ss.getLeaderInfoCallback()
+}
+
+func (ss *ServerSettings) fetchRecord(ev Event) (int, string) {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	value, present := ss.fetchElementCallback(ev.key)
 	if !present {
-		fmt.Printf("Cannot find record: key=%s\n", key)
-		return http.StatusNoContent, value
+		fmt.Printf("Cannot find record: key=%s\n", ev.key)
+		return http.StatusNoContent, misc.AsJsonString("value", value)
 	}
-	fmt.Printf("Fetching record: key=%s, value=%s\n", key, value)
-	return http.StatusOK, value
+	fmt.Printf("Fetching record: key=%s, value=%s\n", ev.key, value)
+	return http.StatusOK, misc.AsJsonString("value", value)
 }
 
-func (ss *ServerSettings) upsertRecord(key string, value string) int {
+func (ss *ServerSettings) forwardEvent(ev Event) (int, string) {
 	for {
-		key_b64 := misc.EncodeToBase64(key)
-		value_b64 := misc.EncodeToBase64(value)
-		event := fmt.Sprintf("UPSERT|%s|%s", key_b64, value_b64)
 		status := ss.forwardToLeader(
 			"/v1/cluster/mkevent/",
-			gin.H{"new_event": event},
+			gin.H{"new_event": ev.Encode()},
 		)
 		if status >= 200 && status < 300 {
-			return http.StatusOK
-		}
-	}
-}
-
-func (ss *ServerSettings) deleteRecord(key string, value string) int {
-	for {
-		key_b64 := misc.EncodeToBase64(key)
-		event := fmt.Sprintf("DELETE|%s", key_b64)
-		status := ss.forwardToLeader(
-			"/v1/cluster/mkevent/",
-			gin.H{"new_event": event},
-		)
-		if status >= 200 && status < 300 {
-			return http.StatusOK
+			return http.StatusOK, misc.AsJsonString("done", "true")
 		}
 	}
 }
