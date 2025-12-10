@@ -50,7 +50,11 @@ func executeCommand(c *cli.Context) error {
 	errors[1] = misc.CreateLockFile(lockfile)
 
 	cluster_nodes, errors[2] = cluster.LoadClusterConfig(config_file)
-	self_config, other_nodes := cluster.SplitClusterNodes(self_identity, cluster_nodes)
+	self_config_ptr, other_nodes := cluster.SplitClusterNodes(self_identity, cluster_nodes)
+
+	if self_config_ptr == nil {
+		return fmt.Errorf("node identity '%s' not found in cluster configuration", self_identity)
+	}
 
 	if err := misc.FirstOfManyErrorsOrNone(errors[:3]); err != nil {
 		return fmt.Errorf("failed to initialize cluster node: %w", err)
@@ -59,6 +63,7 @@ func executeCommand(c *cli.Context) error {
 	var history_file history.HistoryFile
 	pm := misc.NewDiskPersistenceHandler(workidr, "history.dat")
 
+	self_config := *self_config_ptr
 	default_fallback_header := history.GetDefaultHistoryFileHeader(0, 0)
 	history_file, errors[4] = history.NewHistoryFile(pm, default_fallback_header)
 

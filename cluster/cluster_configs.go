@@ -21,7 +21,7 @@ func LoadClusterConfig(config_filepath string) ([]ClusterNode, error) {
 	return config.Nodes, nil
 }
 
-func SplitClusterNodes(self_identity string, all_nodes []ClusterNode) (ClusterNode, map[string]ClusterNode) {
+func SplitClusterNodes(self_identity string, all_nodes []ClusterNode) (*ClusterNode, map[string]ClusterNode) {
 	other_nodes := make(map[string]ClusterNode)
 	var self_config *ClusterNode = nil
 
@@ -32,7 +32,7 @@ func SplitClusterNodes(self_identity string, all_nodes []ClusterNode) (ClusterNo
 			other_nodes[node.Identity] = node
 		}
 	}
-	return *self_config, other_nodes
+	return self_config, other_nodes
 }
 
 func NewRaftSettings(
