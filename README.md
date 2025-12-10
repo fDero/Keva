@@ -34,14 +34,14 @@ wait_time='5'
 
 [[node]]
 identity='host2'
-address ='localhost'
+address='localhost'
 keva_port='371'
 user_port='381'
 wait_time='4'
 
 [[node]]
 identity='host3'
-address ='localhost'
+address='localhost'
 keva_port='372'
 user_port='382'
 wait_time='3'
