@@ -74,6 +74,11 @@ func executeCommand(c *cli.Context) error {
 	global_mutex := &sync.Mutex{}
 	storage := core.NewStorageSettings()
 
+	for history_log := range history_file.Iterate() {
+		event := core.DecodeEvent(history_log)
+		storage.ProcessEvent(event)
+	}
+
 	raft_settings := cluster.NewRaftSettings(
 		other_nodes,
 		self_config,
