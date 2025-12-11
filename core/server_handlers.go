@@ -36,10 +36,10 @@ func (ss *ServerSettings) fetchRecord(ev Event) (int, string) {
 	value, present := ss.fetchElementCallback(ev.key)
 	if !present {
 		fmt.Printf("Cannot find record: key=%s\n", ev.key)
-		return http.StatusNoContent, misc.AsJsonString("value", value)
+		return http.StatusNoContent, `{"value": ""}`
 	}
 	fmt.Printf("Fetching record: key=%s, value=%s\n", ev.key, value)
-	return http.StatusOK, misc.AsJsonString("value", value)
+	return http.StatusOK, value
 }
 
 func (ss *ServerSettings) forwardEvent(ev Event) (int, string) {

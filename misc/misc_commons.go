@@ -2,6 +2,7 @@ package misc
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
@@ -34,7 +35,9 @@ func SplitN(s string, sep string, n int) []string {
 }
 
 func AsJsonString(attribute string, value string) string {
-	return "{ \"" + attribute + "\": \"" + value + "\" }"
+	m := map[string]string{attribute: value}
+	bytes, _ := json.Marshal(m)
+	return string(bytes)
 }
 
 func NormalizeEndpoint(endpoint string) string {
