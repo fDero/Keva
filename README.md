@@ -53,3 +53,13 @@ get the cluster up and running. You can launch an instance like this:
 ```bash
 keva --config-file './keva.toml' --node-identity 'host1' --working-directory './workdir1'
 ```
+
+## API
+Every node in the cluster exposes a REST api, that is internally implemented in such a way that 
+reads are performed locally on the recieving node, while writes are forwarded to the current master
+node (leader). The API is very user friendly, and all you need to do is send requests to 
+the following route with `POST`, `GET` or `DELETE`. When trying to query for a non present key, you will get a `204` response (HTTP/No Content)
+
+```endpoint
+http://<NODE-IP>:<USER-PORT>/v1/storage/key/<KEY>
+```
